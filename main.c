@@ -37,7 +37,7 @@ void configure_Push_Button_pin(){
 	GPIOC->MODER &= ~(3UL<<(2*PC3));  	// Input (00)
 	
 	// 3. Configure GPIO Push-Pull to 'No Pull-up or Pull-down': No pull-up, pull-down (00), Pull-up (01), Pull-down (10), Reserved (11)
-	GPIOC->PUPDR  &= ~(3UL<<(4));  	//Reset
+	GPIOC->PUPDR  &= ~(3UL<<(4));  	// Reset
 	GPIOC->PUPDR  |= 3UL<<(4);  		// Pull-up, Positive logic
 	GPIOC->PUPDR  &= ~(3UL<<(6));  	// Reset
 	GPIOC->PUPDR  |= 1UL<<(6);  		// Pull-down, Negative logic
@@ -56,7 +56,7 @@ void turn_off_LED1(){
 	GPIOB->ODR &= ~(1 << PB4);
 }
 void turn_off_LED2(){
-	GPIOB->ODR |= 1 << PB5;
+	GPIOB->ODR &= 1 << PB5;
 }
 
 // Modular function to toggle the LD2 LED.
@@ -92,7 +92,7 @@ int main(void){
 			for(i=0; i<100000; i++); //delay for a while
 		}else{
 			turn_off_LED1();	//turn off LED1 if SW2 is pressed
-			turn_off_LED2();	//turn off LED2 if SW2 is pressed
+			turn_on_LED2();	//turn off LED2 if SW2 is pressed
 		}
 	}
 }
