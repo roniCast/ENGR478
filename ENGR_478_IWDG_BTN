@@ -1,0 +1,87 @@
+#include "stm32l476xx.h"
+
+#define PC2 2  // Button
+#define WATCHDOG_RELOAD 3750 // Watchdog reset value
+
+// Global flag to control feeding/resetting the watchdog
+// Call when needed
+volatile uint8_t feed_watchdog = 1;
+
+// Configuring the independent watchdog
+void configure_IWDG(void) {
+    // Enable write access to the IWDG register
+	IWDG->KR = 0x5555;
+
+	// Set prescaler to 256 (2^7)
+	IWDG->PR = 6;
+
+	// Set reload value
+	IWDG->RLR = WATCHDOG_RELOAD;
+
+	// Wait for register to update
+	while(IWDG->SR != 0);
+
+	// Start the watchdog
+	IWDG->KR = 0xCCCC;
+}
+
+
+// Reloading the watchdog timer
+void feed_IWDG(void) {
+    IWDG->KR = 0xAAAA;  // Reset the watchdog counter
+}
+
+
+// Configuring the button to be an interrupt
+void configure_Push_Button_Interrupt(void) {
+	// Enable SYSCFG clock
+	RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+
+	// Enable GPIOC clock
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;
+
+	// Configure PC2 as input mode
+	GPIOC->MODER &= ~(3UL << (2*PC2));  // Input (00)
+
+	// Configure pull-up/pull-down as in your original code
+	GPIOC->PUPDR &= ~(3UL << (2*PC2));  // Reset
+	GPIOC->PUPDR |= 2UL << (2*PC2);     // Pull-down for the button
+
+	// Connect External Line to the GPIO
+	SYSCFG->EXTICR[0] &= ~(SYSCFG_EXTICR1_EXTI2); // Clear EXTI2
+	SYSCFG->EXTICR[0] |= SYSCFG_EXTICR1_EXTI2_PC;  // Connect EXTI2 to PC2
+
+	// Configure EXTI trigger type
+	EXTI->RTSR1 |= EXTI_RTSR1_RT2;   // Rising trigger for PC2 (Button is positive logic)
+
+	// Enable EXTI
+	EXTI->IMR1 |= (EXTI_IMR1_IM2);  // Enable EXTI2 and EXTI3
+
+	// Set Priority and Enable NVIC
+	NVIC_SetPriority(EXTI2_IRQn, 1);  // Set priority for EXTI2
+	NVIC_EnableIRQ(EXTI2_IRQn);       // Enable EXTI2 interrupt
+}
+
+
+// Interrupt handler for the button (PC2)
+void EXTI2_IRQHandler(void) {
+	if (EXTI->PR1 & EXTI_PR1_PIF2) {  // Check if EXTI2 interrupt triggered
+		// BUTTON HANDLING LOGIC HERE
+
+		// Clear the EXTI2 pending flag
+		EXTI->PR1 |= EXTI_PR1_PIF2;
+	}
+}
+
+
+int main(void) {
+	// Configure button interrupt
+	configure_Push_Button_Interrupt();
+
+    // Initialize the watchdog
+    configure_IWDG();
+
+	while(1) {
+		// Main program loop
+	}
+}
